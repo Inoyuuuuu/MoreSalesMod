@@ -24,7 +24,7 @@ namespace MoreSales
 
             header = cfg.Bind("DiscountPercentageRange", "IMPORTANT", "(＿ ＿*) Z z z", "SOME ITEMS CAN'T BE ON SALE, THOSE WILL BE IGNORED AND WON'T GO ON SALE!" + Environment.NewLine + 
                 "All percentage values will be rounded (by the game) to the nearest ten.");
-            isAllItemsOnSale = cfg.Bind("Discounts", "setAllItemsOnSale", false, "This sets all shop Items on sale.");
+            isAllItemsOnSale = cfg.Bind("Discounts", "setAllItemsOnSale", false, "[This does not work atm!] This sets all shop Items on sale.");
             numberOfItemsInSale = cfg.Bind("Discounts", "numberOfItemsInSale", numberOfItemsInSaleBaseValue, "This sets the number of items in sale.");
             minSalePercentage = cfg.Bind("DiscountPercentageRange", "minSalePercentage", minSalePercentageBaseValue, "This sets min discount-percentage of sales for all items that are on sale." + Environment.NewLine +
                 "If min > max, minSalePercentage will be set to maxSalePercentage");
