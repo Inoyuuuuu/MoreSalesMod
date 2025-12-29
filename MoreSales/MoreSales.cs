@@ -1,10 +1,12 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using static BepInEx.BepInDependency;
 
 namespace MoreSales
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
+    [BepInDependency("com.sigurd.csync", DependencyFlags.HardDependency)]
     public class MoreSales : BaseUnityPlugin
     {
         public static MoreSales Instance { get; private set; } = null!;
@@ -16,7 +18,7 @@ namespace MoreSales
         {
             mls = base.Logger;
             Instance = this;
-            moreSalesConfigs = new MoreSalesConfigs(base.Config);
+            moreSalesConfigs = new MoreSalesConfigs(Config);
             Patch();
 
             mls.LogInfo($"{MyPluginInfo.PLUGIN_GUID} v{MyPluginInfo.PLUGIN_VERSION} has loaded!");
