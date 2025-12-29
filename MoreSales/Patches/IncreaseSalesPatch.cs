@@ -10,31 +10,29 @@ namespace MoreSales.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(Terminal.SetItemSales))]
         [HarmonyPostfix]
-        static void setItemSalesPostfix()
+        static void setItemSalesPostfix(Terminal __instance)
         {
             int maxSalesPercent = MoreSales.moreSalesConfigs.maxSalePercentage;
             int minSalesPercentage = MoreSales.moreSalesConfigs.minSalePercentage;
             minSalesPercentage = (minSalesPercentage > maxSalesPercent) ? maxSalesPercent : minSalesPercentage;
-            int amountOfItemsOnSale = MoreSales.moreSalesConfigs.numberOfItemsInSaleBaseValue;
+            int amountOfItemsOnSale = MoreSales.moreSalesConfigs.numberOfItemsOnSale;
 
-            Terminal terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
-            terminal.InitializeItemSalesPercentages();
+            //Terminal terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
+            __instance.InitializeItemSalesPercentages();
 
             System.Random random = new System.Random(StartOfRound.Instance.randomMapSeed + 90);
 
             List<int> list = new List<int>();
-            for (int i = 0; i < terminal.buyableItemsList.Length; i++)
+            for (int i = 0; i < __instance.buyableItemsList.Length; i++)
             {
                 list.Add(i);
-                MoreSales.mls.LogWarning(terminal.buyableItemsList[i].itemName);
-                terminal.itemSalesPercentages[i] = 100;
+                __instance.itemSalesPercentages[i] = 100;
             }
 
-            for (int j = 0; j < terminal.buyableVehicles.Length; j++)
+            for (int j = 0; j < __instance.buyableVehicles.Length; j++)
             {
-                list.Add(j);
-                MoreSales.mls.LogWarning(terminal.buyableVehicles[j].vehicleDisplayName);
-                terminal.itemSalesPercentages[j + terminal.buyableItemsList.Length] = 100;
+                list.Add(j + __instance.buyableItemsList.Length);
+                __instance.itemSalesPercentages[j + __instance.buyableItemsList.Length] = 100;
             }
 
             if (MoreSales.moreSalesConfigs.disableAllSales)
@@ -49,27 +47,33 @@ namespace MoreSales.Patches
             {
                 if (list.Count <= 0)
                 {
+                    MoreSales.mls.LogWarning("break!");
                     break;
                 }
 
-                int num3 = random.Next(0, list.Count);
+                int num3 = list[random.Next(0, (list.Count - 1))];
                 int salesPercentage = random.Next(minSalesPercentage, maxSalesPercent);
 
                 if (MoreSales.moreSalesConfigs.roundToNearestTen)
                 {
                     salesPercentage = RoundToNearestTen(salesPercentage);
                 }
+                __instance.itemSalesPercentages[num3] = (100 - salesPercentage);
 
-                terminal.itemSalesPercentages[num3] = (100 - salesPercentage);
-                list.RemoveAt(num3);
+                list.Remove(num3);
+            }
+
+            MoreSales.mls.LogWarning("- - - - - - - - - yeet3");
+            for (int i = 0; i < __instance.itemSalesPercentages.Length; i++)
+            {
+                MoreSales.mls.LogWarning("sale: " + __instance.itemSalesPercentages[i]);
             }
         }
 
-        private static int RoundToNearestTen(int i)
+        private static int RoundToNearestTen(int value)
         {
-            return (int)Math.Round((double)i / 10.0) * 10;
+            return (int)Math.Round((double)value / 10.0) * 10;
         }
-
 
         //[HarmonyPatch(typeof(Terminal), nameof(Terminal.SetItemSales))]
         //[HarmonyTranspiler]
