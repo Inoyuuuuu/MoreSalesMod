@@ -1,6 +1,8 @@
+using GameNetcodeStuff;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace MoreSales.Patches
 {
@@ -10,63 +12,69 @@ namespace MoreSales.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(Terminal.SetItemSales))]
         [HarmonyPostfix]
-        static void setItemSalesPostfix(Terminal __instance)
+        static void SetItemSalesPostfix(Terminal __instance)
         {
-            int maxSalesPercent = MoreSales.moreSalesConfigs.maxSalePercentage;
-            int minSalesPercentage = MoreSales.moreSalesConfigs.minSalePercentage;
-            minSalesPercentage = (minSalesPercentage > maxSalesPercent) ? maxSalesPercent : minSalesPercentage;
-            int amountOfItemsOnSale = MoreSales.moreSalesConfigs.numberOfItemsOnSale;
-
-            //Terminal terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
-            __instance.InitializeItemSalesPercentages();
-
             System.Random random = new System.Random(StartOfRound.Instance.randomMapSeed + 90);
 
-            List<int> list = new List<int>();
+            int maxSalesPercentage = MoreSales.moreSalesConfigs.maxSalePercentage;
+            int minSalesPercentage = MoreSales.moreSalesConfigs.minSalePercentage;
+            float saleValueModifier = MoreSales.moreSalesConfigs.saleValueOdds / 50f;
+            minSalesPercentage = (minSalesPercentage > maxSalesPercentage) ? maxSalesPercentage : minSalesPercentage;
+
+            int minAmountOfItemsOnSale = MoreSales.moreSalesConfigs.minNumberOfItemsOnSale;
+            int maxAmountOfItemsOnSale = MoreSales.moreSalesConfigs.maxNumberOfItemsOnSale;
+            float amountOfSalesModifier = MoreSales.moreSalesConfigs.moreSalesOdds / 50f;
+            minAmountOfItemsOnSale = (minAmountOfItemsOnSale > maxAmountOfItemsOnSale) ? maxAmountOfItemsOnSale : minAmountOfItemsOnSale;
+
+            __instance.InitializeItemSalesPercentages();
+
+            List<int> list = [];
             for (int i = 0; i < __instance.buyableItemsList.Length; i++)
             {
                 list.Add(i);
                 __instance.itemSalesPercentages[i] = 100;
             }
-
             for (int j = 0; j < __instance.buyableVehicles.Length; j++)
             {
                 list.Add(j + __instance.buyableItemsList.Length);
                 __instance.itemSalesPercentages[j + __instance.buyableItemsList.Length] = 100;
             }
 
+            maxAmountOfItemsOnSale = (maxAmountOfItemsOnSale > list.Count) ? list.Count : maxAmountOfItemsOnSale;
+            float amountOfSalesStrength = Math.Clamp(((float)random.Next(0, 100) / 100f) * amountOfSalesModifier, 0, 1);
+            int amountOfItemsOnSale = (int)Math.Round((double)Mathf.Lerp(minAmountOfItemsOnSale, maxAmountOfItemsOnSale, amountOfSalesStrength));
+
             if (MoreSales.moreSalesConfigs.disableAllSales)
             {
                 amountOfItemsOnSale = 0;
-            } else if (MoreSales.moreSalesConfigs.setAllItemsOnSale)
+            }
+            else if (MoreSales.moreSalesConfigs.setAllItemsOnSale)
             {
                 amountOfItemsOnSale = list.Count;
             }
+
+            //MoreSales.mls.LogWarning("amountofitemsonsale: " + amountOfItemsOnSale);
 
             for (int k = 0; k < amountOfItemsOnSale; k++)
             {
                 if (list.Count <= 0)
                 {
-                    MoreSales.mls.LogWarning("break!");
                     break;
                 }
 
                 int num3 = list[random.Next(0, (list.Count - 1))];
-                int salesPercentage = random.Next(minSalesPercentage, maxSalesPercent);
+
+                float randomSalesStrength = Math.Clamp(((float)random.Next(0, 100) / 100f) * saleValueModifier, 0, 1);
+                int randomSalesPercentage = (int)Math.Round((double)Mathf.Lerp(minSalesPercentage, maxSalesPercentage, randomSalesStrength));
+                //MoreSales.mls.LogWarning("randomSalesPercentage: " + randomSalesPercentage + " --> " + RoundToNearestTen(randomSalesPercentage));
 
                 if (MoreSales.moreSalesConfigs.roundToNearestTen)
                 {
-                    salesPercentage = RoundToNearestTen(salesPercentage);
+                    randomSalesPercentage = RoundToNearestTen(randomSalesPercentage);
                 }
-                __instance.itemSalesPercentages[num3] = (100 - salesPercentage);
+                __instance.itemSalesPercentages[num3] = (100 - randomSalesPercentage);
 
                 list.Remove(num3);
-            }
-
-            MoreSales.mls.LogWarning("- - - - - - - - - yeet3");
-            for (int i = 0; i < __instance.itemSalesPercentages.Length; i++)
-            {
-                MoreSales.mls.LogWarning("sale: " + __instance.itemSalesPercentages[i]);
             }
         }
 
@@ -75,109 +83,12 @@ namespace MoreSales.Patches
             return (int)Math.Round((double)value / 10.0) * 10;
         }
 
-        //[HarmonyPatch(typeof(Terminal), nameof(Terminal.SetItemSales))]
-        //[HarmonyTranspiler]
-        //static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        //{
-        //    var codes = new List<CodeInstruction>(instructions);
-
-        //    for (int i = 0; i < codes.Count; i++)
-        //    {
-        //        if (codes[i].opcode == OpCodes.Call && codes[i].operand is MethodInfo clampMethod)
-        //        {
-        //            if (clampMethod.Name == "Clamp" && clampMethod.DeclaringType == typeof(UnityEngine.Mathf))
-        //            {
-        //                if (i > 2 && codes[i - 1].opcode == OpCodes.Ldc_I4_5 && codes[i - 2].opcode == OpCodes.Ldc_I4_0)
-        //                {
-        //                    codes.Insert(i + 2, new CodeInstruction(OpCodes.Ldc_I4_S, MoreSales.moreSalesConfigs.actualOfItemsInSale));
-        //                    codes.Insert(i + 3, new CodeInstruction(OpCodes.Stloc_1));
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    for (int i = 0; i < codes.Count; i++)
-        //    {
-        //        if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand is MethodInfo randomMethod)
-        //        {
-        //            if (randomMethod.Name == "Next" && randomMethod.DeclaringType == typeof(System.Random))
-        //            {
-        //                if (i > 2 && codes[i - 1].opcode == OpCodes.Ldloc_S && codes[i - 2].opcode == OpCodes.Ldc_I4_0)
-        //                {
-
-        //                    codes.RemoveAt(i - 2);
-        //                    codes.Insert(i - 2, new CodeInstruction(OpCodes.Ldc_I4_S, MoreSales.moreSalesConfigs.minSalePercentage.Value));
-
-        //                    codes.RemoveAt(i - 1);
-        //                    codes.Insert(i - 1, new CodeInstruction(OpCodes.Ldc_I4_S, MoreSales.moreSalesConfigs.maxSalePercentage.Value));
-
-        //                    break;
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    MoreSales.mls.LogDebug("finished IL Code, printing to logs now: ");
-        //    for (int i = 0; i < codes.Count; i++)
-        //    {
-        //        MoreSales.mls.LogDebug(codes[i].ToString());
-        //    }
-
-        //    return codes.AsEnumerable();
-        //}
-
-
-        //[HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.ConnectClientToPlayerObject))]
+        //[HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.PlayerJump))]
         //[HarmonyPostfix]
-        //static void updateItemSalesOnLobbyJoin()
+        //public static void DebugPatch()
         //{
         //    Terminal terminal = UnityEngine.Object.FindObjectOfType<Terminal>();
         //    terminal.SetItemSales();
-
-        //    //Debug_GenerateRandomSales(terminal);
-        //}
-
-        //private static void Debug_LogILCodeAtIndex(List<CodeInstruction> codes, int index)
-        //{
-        //    if (index >= 2)
-        //    {
-        //        MoreSales.mls.LogDebug("i - 2: " + codes[index - 2].ToString());
-        //        MoreSales.mls.LogDebug("i - 1: " + codes[index - 1].ToString());
-        //    }
-
-        //    MoreSales.mls.LogDebug("i: " + codes[index].ToString());
-        //    MoreSales.mls.LogDebug("i + 1: " + codes[index + 1].ToString());
-        //    MoreSales.mls.LogDebug("i + 2: " + codes[index + 2].ToString());
-        //    MoreSales.mls.LogDebug("i + 3: " + codes[index + 3].ToString());
-        //    MoreSales.mls.LogDebug("i + 4: " + codes[index + 4].ToString());
-        //}
-
-        //private static void Debug_GenerateRandomSales(Terminal terminal)
-        //{
-        //    System.Random random = new System.Random(StartOfRound.Instance.randomMapSeed + 90);
-
-        //    int num = 999999;
-        //    List<int> list = new List<int>();
-        //    for (int i = 0; i < terminal.buyableItemsList.Length; i++)
-        //    {
-        //        list.Add(i);
-        //    }
-
-        //    for (int j = 0; j < num; j++)
-        //    {
-        //        if (list.Count <= 0)
-        //        {
-        //            break;
-        //        }
-        //        int num2 = random.Next(0, list.Count);
-        //        int i2 = 100 - random.Next(MoreSales.moreSalesConfigs.minSalePercentage.Value, MoreSales.moreSalesConfigs.maxSalePercentage.Value);
-        //        i2 = RoundToNearestTen(i2);
-
-        //        MoreSales.mls.LogWarning("num2: " + num2 + " number of list: " + list[num2] + " should be percentage: " + i2);
-        //        MoreSales.mls.LogWarning("itemName: " + terminal.buyableItemsList[num2].itemName + " itemSaleP " + terminal.itemSalesPercentages[num2]);
-
-        //        list.RemoveAt(num2);
-        //    }
         //}
     }
 }
