@@ -1,8 +1,8 @@
 # More Sales Mod
-> This Mod is not actively being maintained and may be broken!
-> The +code on [this branch](https://github.com/Inoyuuuuu/MoreSalesMod/tree/postfix-rework) is more likely to work in newer Lethal Company versions!
+> This Mod is not actively being maintained and may be broken!\
+> The code on [this branch](https://github.com/Inoyuuuuu/MoreSalesMod/tree/postfix-rework) is more likely to work in newer Lethal Company versions!
 
-A very small mod that increases the chances amount of items on sale and the sale percentages.
+A very small mod that increases the chances amount of items on sale and the sale percentages.\
 I created this to learn more about Transpiler patching.
 
 #### Settings (adjustable in mod's configs)
